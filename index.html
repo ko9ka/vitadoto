@@ -1,161 +1,139 @@
 <!DOCTYPE html>
 <html lang="ru">
 <head>
-<meta charset="UTF-8">
-<title>DM Purple</title>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>DM Chat</title>
 
 <style>
 body {
-  margin:0;
-  font-family: Arial;
-  background:#12001f;
-  color:white;
-  display:flex;
+margin:0;
+font-family: Arial;
+background:#1a001f;
+color:white;
+display:flex;
+height:100vh;
 }
 
 /* LEFT USERS */
 #users {
-  width:30%;
-  background:#1b062b;
-  height:100vh;
-  overflow-y:auto;
-  border-right:2px solid #2a0a3d;
+width:250px;
+background:#2a0033;
+padding:10px;
+overflow:auto;
 }
 
 .user {
-  padding:15px;
-  display:flex;
-  align-items:center;
-  gap:10px;
-  cursor:pointer;
-}
-
-.user:hover {
-  background:#2a0a3d;
+display:flex;
+align-items:center;
+gap:10px;
+padding:10px;
+cursor:pointer;
+background:#3a0047;
+margin-bottom:8px;
+border-radius:10px;
 }
 
 .avatar {
-  width:40px;
-  height:40px;
-  border-radius:8px;
-  background:#a855f7;
-  overflow:hidden;
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  font-weight:bold;
-}
-
-.avatar img {
-  width:100%;
-  height:100%;
-  object-fit:cover;
+width:40px;
+height:40px;
+background:purple;
+border-radius:8px;
 }
 
 /* CHAT */
 #chat {
-  flex:1;
-  display:flex;
-  flex-direction:column;
-  height:100vh;
-}
-
-#header {
-  padding:15px;
-  background:#2a0a3d;
+flex:1;
+display:flex;
+flex-direction:column;
 }
 
 #messages {
-  flex:1;
-  overflow-y:auto;
-  padding:10px;
+flex:1;
+padding:10px;
+overflow:auto;
 }
 
 .msg {
-  padding:10px;
-  margin:8px;
-  border-radius:10px;
-  max-width:60%;
+background:#3a0047;
+padding:10px;
+margin:5px;
+border-radius:10px;
+display:flex;
+justify-content:space-between;
+align-items:center;
 }
 
-.me {
-  background:#a855f7;
-  margin-left:auto;
+.like {
+cursor:pointer;
+color:#ff4dff;
 }
 
-.other {
-  background:#2e0a45;
-}
-
-#input {
-  display:flex;
-  padding:10px;
-  gap:10px;
-  background:#1b062b;
+#inputBox {
+display:flex;
+padding:10px;
+background:#2a0033;
 }
 
 input {
-  flex:1;
-  padding:10px;
-  border:none;
-  outline:none;
+flex:1;
+padding:10px;
+border:none;
+border-radius:8px;
 }
 
 button {
-  background:#a855f7;
-  border:none;
-  color:white;
-  padding:10px;
-  cursor:pointer;
+margin-left:10px;
+background:purple;
+color:white;
+border:none;
+padding:10px;
+border-radius:8px;
+cursor:pointer;
 }
 
-#loginBtn {
-  position:absolute;
-  right:10px;
-  top:10px;
+#login {
+position:absolute;
+top:0;left:0;right:0;bottom:0;
+background:#1a001f;
+display:flex;
+justify-content:center;
+align-items:center;
+flex-direction:column;
 }
 </style>
 </head>
-
 <body>
+
+<div id="login">
+<h2>DM Chat</h2>
+<button onclick="googleLogin()">Войти через Google</button>
+</div>
 
 <div id="users"></div>
 
 <div id="chat">
-  <div id="header">
-    💜 DM Chat
-    <button id="loginBtn">Login</button>
-  </div>
+<div id="messages"></div>
 
-  <div id="messages"></div>
-
-  <div id="input">
-    <input id="text" placeholder="Написать...">
-    <button id="send">Send</button>
-  </div>
+<div id="inputBox">
+<input id="text" placeholder="Напиши сообщение..."/>
+<button onclick="send()">Отправить</button>
+</div>
 </div>
 
+<!-- FIREBASE -->
 <script type="module">
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-app.js";
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
 import {
-  getAuth,
-  GoogleAuthProvider,
-  signInWithPopup,
-  onAuthStateChanged
-} from "https://www.gstatic.com/firebasejs/10.12.5/firebase-auth.js";
+getAuth, GoogleAuthProvider, signInWithPopup, onAuthStateChanged
+} from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 
 import {
-  getFirestore,
-  collection,
-  getDocs,
-  addDoc,
-  query,
-  orderBy,
-  onSnapshot,
-  serverTimestamp
-} from "https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js";
+getFirestore, collection, addDoc, query, onSnapshot,
+orderBy, serverTimestamp
+} from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
-// 🔥 CONFIG
+/* 🔥 ТВОЙ FIREBASE */
 const firebaseConfig = {
   apiKey: "AIzaSyCta0f_VfoXiC_TUV0r0IpyHOJHq5v9eoU",
   authDomain: "werr-6ef0d.firebaseapp.com",
@@ -170,111 +148,103 @@ const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
 
+let currentUser = null;
+let selectedUser = null;
+
+/* USERS (демо список) */
+const usersList = ["madkid","9mice","admin"];
+
+/* LOGIN */
+window.googleLogin = function() {
 const provider = new GoogleAuthProvider();
+signInWithPopup(auth, provider);
+}
 
-let user = null;
-let currentChat = null;
-
-const usersDiv = document.getElementById("users");
-const messagesDiv = document.getElementById("messages");
-const input = document.getElementById("text");
-
-// 🔥 LOGIN
-document.getElementById("loginBtn").onclick = () => {
-  signInWithPopup(auth, provider);
-};
-
-onAuthStateChanged(auth, async (u) => {
-  user = u;
-  if (user) {
-    loadUsers();
-  }
+onAuthStateChanged(auth,(user)=>{
+if(user){
+currentUser = user.displayName || "user";
+document.getElementById("login").style.display="none";
+loadUsers();
+}
 });
 
-// 🔥 USERS LIST
-async function loadUsers() {
-  usersDiv.innerHTML = "";
+/* USERS UI */
+function loadUsers(){
+let box = document.getElementById("users");
+box.innerHTML="";
 
-  const snap = await getDocs(collection(db, "users"));
+usersList.forEach(u=>{
+if(u === currentUser) return;
 
-  snap.forEach(d => {
-    const u = d.data();
+let div = document.createElement("div");
+div.className="user";
 
-    if (u.uid === user.uid) return;
+div.innerHTML = `
+<div class="avatar"></div>
+<div>${u}</div>
+`;
 
-    const div = document.createElement("div");
-    div.className = "user";
+div.onclick = ()=>openChat(u);
 
-    div.innerHTML = `
-      <div class="avatar">
-        ${u.photoURL ? `<img src="${u.photoURL}">` : u.name[0]}
-      </div>
-      <div>${u.name}</div>
-    `;
-
-    div.onclick = () => openChat(u);
-
-    usersDiv.appendChild(div);
-  });
-
-  // save myself
-  await addDoc(collection(db, "users"), {
-    uid: user.uid,
-    name: user.displayName,
-    photoURL: user.photoURL
-  });
+box.appendChild(div);
+});
 }
 
-// 🔥 CHAT ID
-function chatId(uid1, uid2) {
-  return [uid1, uid2].sort().join("_");
+/* CHAT ID */
+function chatId(u1,u2){
+return [u1,u2].sort().join("_");
 }
 
-// 🔥 OPEN CHAT
-function openChat(u) {
-  currentChat = chatId(user.uid, u.uid);
-  loadMessages();
+/* OPEN CHAT */
+function openChat(user){
+selectedUser = user;
+listen();
 }
 
-// 🔥 LOAD MESSAGES
-function loadMessages() {
-  const q = query(
-    collection(db, "chats", currentChat, "messages"),
-    orderBy("createdAt")
-  );
+/* SEND */
+window.send = async function(){
+let text = document.getElementById("text").value;
+if(!text || !selectedUser) return;
 
-  onSnapshot(q, (snap) => {
-    messagesDiv.innerHTML = "";
+await addDoc(collection(db,"chats",chatId(currentUser,selectedUser),"messages"),{
+text,
+from: currentUser,
+likes:0,
+createdAt: serverTimestamp()
+});
 
-    snap.forEach(d => {
-      const m = d.data();
-
-      const div = document.createElement("div");
-      div.className = "msg " + (m.senderId === user.uid ? "me" : "other");
-
-      div.innerHTML = `<b>${m.senderName}</b><br>${m.text}`;
-
-      messagesDiv.appendChild(div);
-    });
-
-    messagesDiv.scrollTop = messagesDiv.scrollHeight;
-  });
+document.getElementById("text").value="";
 }
 
-// 🔥 SEND MESSAGE
-document.getElementById("send").onclick = async () => {
-  if (!currentChat) return alert("Выбери чат");
-  if (!input.value) return;
+/* LISTEN */
+function listen(){
+const q = query(
+collection(db,"chats",chatId(currentUser,selectedUser),"messages"),
+orderBy("createdAt")
+);
 
-  await addDoc(collection(db, "chats", currentChat, "messages"), {
-    text: input.value,
-    senderId: user.uid,
-    senderName: user.displayName,
-    createdAt: serverTimestamp()
-  });
+onSnapshot(q,(snap)=>{
+let box = document.getElementById("messages");
+box.innerHTML="";
 
-  input.value = "";
-};
+snap.forEach(doc=>{
+let d = doc.data();
+
+let div = document.createElement("div");
+div.className="msg";
+
+div.innerHTML=`
+<div>
+<b>${d.from}</b><br>
+${d.text}
+</div>
+<div class="like">❤️ ${d.likes || 0}</div>
+`;
+
+box.appendChild(div);
+});
+});
+}
 </script>
 
 </body>
