@@ -1,139 +1,139 @@
 <!DOCTYPE html>
 <html lang="ru">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<meta charset="UTF-8">
 <title>DM Chat</title>
+
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
 
 <style>
 body {
-margin:0;
-font-family: Arial;
-background:#1a001f;
-color:white;
-display:flex;
-height:100vh;
+  margin:0;
+  font-family: Arial;
+  background:#120018;
+  color:white;
 }
 
-/* LEFT USERS */
+#login {
+  display:flex;
+  justify-content:center;
+  align-items:center;
+  height:100vh;
+}
+
+button {
+  padding:10px 20px;
+  border:none;
+  background:#a855f7;
+  color:white;
+  cursor:pointer;
+  border-radius:10px;
+}
+
+#app {
+  display:none;
+  height:100vh;
+  display:flex;
+}
+
+/* USERS LIST */
 #users {
-width:250px;
-background:#2a0033;
-padding:10px;
-overflow:auto;
+  width:250px;
+  background:#1b0026;
+  padding:10px;
 }
 
 .user {
-display:flex;
-align-items:center;
-gap:10px;
-padding:10px;
-cursor:pointer;
-background:#3a0047;
-margin-bottom:8px;
-border-radius:10px;
+  display:flex;
+  align-items:center;
+  padding:10px;
+  cursor:pointer;
+  border-bottom:1px solid #2d0a3d;
 }
 
 .avatar {
-width:40px;
-height:40px;
-background:purple;
-border-radius:8px;
+  width:45px;
+  height:45px;
+  background:#333;
+  margin-right:10px;
+  border-radius:8px; /* КВАДРАТ */
+  overflow:hidden;
+}
+
+.avatar img {
+  width:100%;
+  height:100%;
+  object-fit:cover;
 }
 
 /* CHAT */
 #chat {
-flex:1;
-display:flex;
-flex-direction:column;
+  flex:1;
+  display:flex;
+  flex-direction:column;
 }
 
 #messages {
-flex:1;
-padding:10px;
-overflow:auto;
+  flex:1;
+  padding:10px;
+  overflow-y:auto;
 }
 
 .msg {
-background:#3a0047;
-padding:10px;
-margin:5px;
-border-radius:10px;
-display:flex;
-justify-content:space-between;
-align-items:center;
+  background:#2a003d;
+  padding:10px;
+  margin:10px;
+  border-radius:10px;
+  position:relative;
 }
 
 .like {
-cursor:pointer;
-color:#ff4dff;
+  position:absolute;
+  right:10px;
+  bottom:5px;
+  cursor:pointer;
+  color:#ff4dff;
 }
 
 #inputBox {
-display:flex;
-padding:10px;
-background:#2a0033;
+  display:flex;
 }
 
 input {
-flex:1;
-padding:10px;
-border:none;
-border-radius:8px;
+  flex:1;
+  padding:10px;
+  border:none;
 }
 
-button {
-margin-left:10px;
-background:purple;
-color:white;
-border:none;
-padding:10px;
-border-radius:8px;
-cursor:pointer;
-}
-
-#login {
-position:absolute;
-top:0;left:0;right:0;bottom:0;
-background:#1a001f;
-display:flex;
-justify-content:center;
-align-items:center;
-flex-direction:column;
-}
 </style>
 </head>
+
 <body>
 
 <div id="login">
-<h2>DM Chat</h2>
-<button onclick="googleLogin()">Войти через Google</button>
+  <button onclick="googleLogin()">Войти через Google</button>
 </div>
 
-<div id="users"></div>
+<div id="app">
 
-<div id="chat">
-<div id="messages"></div>
+  <div id="users"></div>
 
-<div id="inputBox">
-<input id="text" placeholder="Напиши сообщение..."/>
-<button onclick="send()">Отправить</button>
+  <div id="chat">
+    <div id="messages"></div>
+
+    <div id="inputBox">
+      <input id="text" placeholder="Сообщение...">
+      <button onclick="sendMsg()">Отправить</button>
+    </div>
+  </div>
+
 </div>
-</div>
 
-<!-- FIREBASE -->
-<script type="module">
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-import {
-getAuth, GoogleAuthProvider, signInWithPopup, onAuthStateChanged
-} from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+<script>
+/* ================= FIREBASE ================= */
 
-import {
-getFirestore, collection, addDoc, query, onSnapshot,
-orderBy, serverTimestamp
-} from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
-
-/* 🔥 ТВОЙ FIREBASE */
 const firebaseConfig = {
   apiKey: "AIzaSyCta0f_VfoXiC_TUV0r0IpyHOJHq5v9eoU",
   authDomain: "werr-6ef0d.firebaseapp.com",
@@ -144,112 +144,127 @@ const firebaseConfig = {
   measurementId: "G-G2VGMJSXLX"
 };
 
-const app = initializeApp(firebaseConfig);
-const auth = getAuth(app);
-const db = getFirestore(app);
+firebase.initializeApp(firebaseConfig);
 
-let currentUser = null;
-let selectedUser = null;
+const auth = firebase.auth();
+const db = firebase.firestore();
 
-/* USERS (демо список) */
-const usersList = [
-  { name: "madkid", avatar: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTM0OjKY87dSdNw3LIs-7yHxIuleNv9u0EmsXeYX0h9vA&s=madkid" },
-  { name: "fanatka masheri", avatar: "data:image/jpeg;base64,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" },
-=fanatka masheri" },
-  { name: "me", avatar: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQrO6r-mEcYrqyicH1cq2ukPD0nbIqbuUy0Qg&s=me" }
+/* ================= USERS ================= */
+
+const USERS = [
+  {
+    name:"мэдкид",
+    photo:"https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTM0OjKY87dSdNw3LIs-7yHxIuleNv9u0EmsXeYX0h9vA&s"
+  },
+  {
+    name:"fanatka masheri",
+    photo:"data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD..."
+  },
+  {
+    name:"me",
+    photo:"https://cdn-images.dzcdn.net/images/cover/8af82f9f4fd86ba086c184651d4c014f/500x500.jpg"
+  }
 ];
 
-/* LOGIN */
-window.googleLogin = function() {
-const provider = new GoogleAuthProvider();
-signInWithPopup(auth, provider);
+let currentUser = null;
+let selectedChat = "global";
+
+/* ================= LOGIN ================= */
+
+function googleLogin(){
+  const provider = new firebase.auth.GoogleAuthProvider();
+  auth.signInWithPopup(provider);
 }
 
-onAuthStateChanged(auth,(user)=>{
-if(user){
-currentUser = user.displayName || "user";
-document.getElementById("login").style.display="none";
-loadUsers();
-}
+auth.onAuthStateChanged(user=>{
+  if(user){
+    currentUser = user;
+    document.getElementById("login").style.display="none";
+    document.getElementById("app").style.display="flex";
+    renderUsers();
+    loadMessages();
+  }
 });
 
-/* USERS UI */
-function loadUsers(){
-let box = document.getElementById("users");
-box.innerHTML="";
+/* ================= USERS UI ================= */
 
-usersList.forEach(u=>{
-if(u === currentUser) return;
+function renderUsers(){
+  const box = document.getElementById("users");
+  box.innerHTML="";
 
-let div = document.createElement("div");
-div.className="user";
+  USERS.forEach(u=>{
+    const div = document.createElement("div");
+    div.className="user";
+    div.onclick=()=>openChat(u.name);
 
-div.innerHTML = `
-<div class="avatar"></div>
-<div>${u}</div>
-`;
-
-div.onclick = ()=>openChat(u);
-
-box.appendChild(div);
-});
+    div.innerHTML=`
+      <div class="avatar"><img src="${u.photo}"></div>
+      <div>${u.name}</div>
+    `;
+    box.appendChild(div);
+  });
 }
 
-/* CHAT ID */
-function chatId(u1,u2){
-return [u1,u2].sort().join("_");
+/* ================= CHAT ================= */
+
+function openChat(name){
+  selectedChat = name;
+  loadMessages();
 }
 
-/* OPEN CHAT */
-function openChat(user){
-selectedUser = user;
-listen();
+function sendMsg(){
+  const text = document.getElementById("text").value;
+
+  if(!text) return;
+
+  db.collection("messages").add({
+    text,
+    from: currentUser.displayName,
+    chat: selectedChat,
+    likes:0,
+    created:Date.now()
+  });
+
+  document.getElementById("text").value="";
 }
 
-/* SEND */
-window.send = async function(){
-let text = document.getElementById("text").value;
-if(!text || !selectedUser) return;
+/* ================= LOAD ================= */
 
-await addDoc(collection(db,"chats",chatId(currentUser,selectedUser),"messages"),{
-text,
-from: currentUser,
-likes:0,
-createdAt: serverTimestamp()
-});
+function loadMessages(){
+  db.collection("messages")
+    .where("chat","==",selectedChat)
+    .orderBy("created")
+    .onSnapshot(snap=>{
+      const box = document.getElementById("messages");
+      box.innerHTML="";
 
-document.getElementById("text").value="";
+      snap.forEach(doc=>{
+        const m = doc.data();
+
+        const div = document.createElement("div");
+        div.className="msg";
+
+        div.innerHTML=`
+          <b>${m.from}</b><br>
+          ${m.text}
+          <div class="like" onclick="likeMsg('${doc.id}',${m.likes})">
+            ❤️ ${m.likes}
+          </div>
+        `;
+
+        box.appendChild(div);
+      });
+    });
 }
 
-/* LISTEN */
-function listen(){
-const q = query(
-collection(db,"chats",chatId(currentUser,selectedUser),"messages"),
-orderBy("createdAt")
-);
+/* ================= LIKE ================= */
 
-onSnapshot(q,(snap)=>{
-let box = document.getElementById("messages");
-box.innerHTML="";
-
-snap.forEach(doc=>{
-let d = doc.data();
-
-let div = document.createElement("div");
-div.className="msg";
-
-div.innerHTML=`
-<div>
-<b>${d.from}</b><br>
-${d.text}
-</div>
-<div class="like">❤️ ${d.likes || 0}</div>
-`;
-
-box.appendChild(div);
-});
-});
+function likeMsg(id,likes){
+  db.collection("messages").doc(id).update({
+    likes: likes+1
+  });
 }
+
 </script>
 
 </body>
