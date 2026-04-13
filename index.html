@@ -1,139 +1,145 @@
 <!DOCTYPE html>
 <html lang="ru">
 <head>
-<meta charset="UTF-8">
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 <title>DM Chat</title>
-
-<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
 
 <style>
 body {
-  margin:0;
-  font-family: Arial;
-  background:#120018;
-  color:white;
+margin:0;
+font-family: Arial;
+background:#1a001f;
+color:white;
+display:flex;
+height:100vh;
 }
 
-#login {
-  display:flex;
-  justify-content:center;
-  align-items:center;
-  height:100vh;
-}
-
-button {
-  padding:10px 20px;
-  border:none;
-  background:#a855f7;
-  color:white;
-  cursor:pointer;
-  border-radius:10px;
-}
-
-#app {
-  display:none;
-  height:100vh;
-  display:flex;
-}
-
-/* USERS LIST */
+/* LEFT USERS */
 #users {
-  width:250px;
-  background:#1b0026;
-  padding:10px;
+width:250px;
+background:#2a0033;
+padding:10px;
+overflow:auto;
 }
 
 .user {
-  display:flex;
-  align-items:center;
-  padding:10px;
-  cursor:pointer;
-  border-bottom:1px solid #2d0a3d;
+display:flex;
+align-items:center;
+gap:10px;
+padding:10px;
+cursor:pointer;
+background:#3a0047;
+margin-bottom:8px;
+border-radius:10px;
 }
 
 .avatar {
-  width:45px;
-  height:45px;
-  background:#333;
-  margin-right:10px;
-  border-radius:8px; /* КВАДРАТ */
-  overflow:hidden;
+width:40px;
+height:40px;
+border-radius:8px;
+overflow:hidden;
+background:purple;
 }
 
 .avatar img {
-  width:100%;
-  height:100%;
-  object-fit:cover;
+width:100%;
+height:100%;
+object-fit:cover;
 }
 
 /* CHAT */
 #chat {
-  flex:1;
-  display:flex;
-  flex-direction:column;
+flex:1;
+display:flex;
+flex-direction:column;
 }
 
 #messages {
-  flex:1;
-  padding:10px;
-  overflow-y:auto;
+flex:1;
+padding:10px;
+overflow:auto;
 }
 
 .msg {
-  background:#2a003d;
-  padding:10px;
-  margin:10px;
-  border-radius:10px;
-  position:relative;
+background:#3a0047;
+padding:10px;
+margin:5px;
+border-radius:10px;
+display:flex;
+justify-content:space-between;
+align-items:center;
 }
 
 .like {
-  position:absolute;
-  right:10px;
-  bottom:5px;
-  cursor:pointer;
-  color:#ff4dff;
+cursor:pointer;
+color:#ff4dff;
 }
 
 #inputBox {
-  display:flex;
+display:flex;
+padding:10px;
+background:#2a0033;
 }
 
 input {
-  flex:1;
-  padding:10px;
-  border:none;
+flex:1;
+padding:10px;
+border:none;
+border-radius:8px;
 }
 
+button {
+margin-left:10px;
+background:purple;
+color:white;
+border:none;
+padding:10px;
+border-radius:8px;
+cursor:pointer;
+}
+
+#login {
+position:absolute;
+top:0;left:0;right:0;bottom:0;
+background:#1a001f;
+display:flex;
+justify-content:center;
+align-items:center;
+flex-direction:column;
+}
 </style>
 </head>
 
 <body>
 
 <div id="login">
-  <button onclick="googleLogin()">Войти через Google</button>
+<h2>DM Chat</h2>
+<button onclick="googleLogin()">Войти через Google</button>
 </div>
 
-<div id="app">
+<div id="users"></div>
 
-  <div id="users"></div>
+<div id="chat">
+<div id="messages"></div>
 
-  <div id="chat">
-    <div id="messages"></div>
-
-    <div id="inputBox">
-      <input id="text" placeholder="Сообщение...">
-      <button onclick="sendMsg()">Отправить</button>
-    </div>
-  </div>
-
+<div id="inputBox">
+<input id="text" placeholder="Напиши сообщение..."/>
+<button onclick="send()">Отправить</button>
+</div>
 </div>
 
-<script>
-/* ================= FIREBASE ================= */
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+import { getAuth, GoogleAuthProvider, signInWithPopup, onAuthStateChanged }
+from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 
+import {
+getFirestore, collection, addDoc, query, onSnapshot,
+orderBy, serverTimestamp
+} from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+/* 🔥 FIREBASE */
 const firebaseConfig = {
   apiKey: "AIzaSyCta0f_VfoXiC_TUV0r0IpyHOJHq5v9eoU",
   authDomain: "werr-6ef0d.firebaseapp.com",
@@ -144,127 +150,120 @@ const firebaseConfig = {
   measurementId: "G-G2VGMJSXLX"
 };
 
-firebase.initializeApp(firebaseConfig);
-
-const auth = firebase.auth();
-const db = firebase.firestore();
-
-/* ================= USERS ================= */
-
-const USERS = [
-  {
-    name:"мэдкид",
-    photo:"https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTM0OjKY87dSdNw3LIs-7yHxIuleNv9u0EmsXeYX0h9vA&s"
-  },
-  {
-    name:"fanatka masheri",
-    photo:"data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD..."
-  },
-  {
-    name:"me",
-    photo:"https://cdn-images.dzcdn.net/images/cover/8af82f9f4fd86ba086c184651d4c014f/500x500.jpg"
-  }
-];
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db = getFirestore(app);
 
 let currentUser = null;
-let selectedChat = "global";
+let selectedUser = null;
 
-/* ================= LOGIN ================= */
+/* USERS */
+const usersList = [
+{
+name: "madkid",
+avatar: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTM0OjKY87dSdNw3LIs-7yHxIuleNv9u0EmsXeYX0h9vA&s"
+},
+{
+name: "fanatka masheri",
+avatar: "https://upload.wikimedia.org/wikipedia/en/9/9e/Fluttershy_%28My_Little_Pony%29.png"
+},
+{
+name: "me",
+avatar: "https://cdn-images.dzcdn.net/images/cover/8af82f9f4fd86ba086c184651d4c014f/500x500.jpg"
+}
+];
 
-function googleLogin(){
-  const provider = new firebase.auth.GoogleAuthProvider();
-  auth.signInWithPopup(provider);
+/* LOGIN */
+window.googleLogin = function() {
+const provider = new GoogleAuthProvider();
+signInWithPopup(auth, provider);
 }
 
-auth.onAuthStateChanged(user=>{
-  if(user){
-    currentUser = user;
-    document.getElementById("login").style.display="none";
-    document.getElementById("app").style.display="flex";
-    renderUsers();
-    loadMessages();
-  }
+onAuthStateChanged(auth,(user)=>{
+if(user){
+currentUser = user.displayName || "user";
+document.getElementById("login").style.display="none";
+loadUsers();
+}
 });
 
-/* ================= USERS UI ================= */
+/* USERS */
+function loadUsers(){
+let box = document.getElementById("users");
+box.innerHTML="";
 
-function renderUsers(){
-  const box = document.getElementById("users");
-  box.innerHTML="";
+usersList.forEach(u=>{
+if(u.name === currentUser) return;
 
-  USERS.forEach(u=>{
-    const div = document.createElement("div");
-    div.className="user";
-    div.onclick=()=>openChat(u.name);
+let div = document.createElement("div");
+div.className="user";
 
-    div.innerHTML=`
-      <div class="avatar"><img src="${u.photo}"></div>
-      <div>${u.name}</div>
-    `;
-    box.appendChild(div);
-  });
+div.innerHTML = `
+<div class="avatar"><img src="${u.avatar}"></div>
+<div>${u.name}</div>
+`;
+
+div.onclick = ()=>openChat(u.name);
+
+box.appendChild(div);
+});
 }
 
-/* ================= CHAT ================= */
-
-function openChat(name){
-  selectedChat = name;
-  loadMessages();
+/* CHAT ID */
+function chatId(u1,u2){
+return [u1,u2].sort().join("_");
 }
 
-function sendMsg(){
-  const text = document.getElementById("text").value;
-
-  if(!text) return;
-
-  db.collection("messages").add({
-    text,
-    from: currentUser.displayName,
-    chat: selectedChat,
-    likes:0,
-    created:Date.now()
-  });
-
-  document.getElementById("text").value="";
+/* OPEN CHAT */
+function openChat(user){
+selectedUser = user;
+listen();
 }
 
-/* ================= LOAD ================= */
+/* SEND */
+window.send = async function(){
+let text = document.getElementById("text").value;
+if(!text || !selectedUser) return;
 
-function loadMessages(){
-  db.collection("messages")
-    .where("chat","==",selectedChat)
-    .orderBy("created")
-    .onSnapshot(snap=>{
-      const box = document.getElementById("messages");
-      box.innerHTML="";
+await addDoc(collection(db,"chats",chatId(currentUser,selectedUser),"messages"),{
+text,
+from: currentUser,
+likes:0,
+createdAt: serverTimestamp()
+});
 
-      snap.forEach(doc=>{
-        const m = doc.data();
-
-        const div = document.createElement("div");
-        div.className="msg";
-
-        div.innerHTML=`
-          <b>${m.from}</b><br>
-          ${m.text}
-          <div class="like" onclick="likeMsg('${doc.id}',${m.likes})">
-            ❤️ ${m.likes}
-          </div>
-        `;
-
-        box.appendChild(div);
-      });
-    });
+document.getElementById("text").value="";
 }
 
-/* ================= LIKE ================= */
+/* LISTEN */
+function listen(){
+const q = query(
+collection(db,"chats",chatId(currentUser,selectedUser),"messages"),
+orderBy("createdAt")
+);
 
-function likeMsg(id,likes){
-  db.collection("messages").doc(id).update({
-    likes: likes+1
-  });
+onSnapshot(q,(snap)=>{
+let box = document.getElementById("messages");
+box.innerHTML="";
+
+snap.forEach(doc=>{
+let d = doc.data();
+
+let div = document.createElement("div");
+div.className="msg";
+
+div.innerHTML=`
+<div>
+<b>${d.from}</b><br>
+${d.text}
+</div>
+<div class="like">❤️ ${d.likes || 0}</div>
+`;
+
+box.appendChild(div);
+});
+});
 }
-
 </script>
 
 </body>
