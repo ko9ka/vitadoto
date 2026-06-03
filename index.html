@@ -1,270 +1,837 @@
 <!DOCTYPE html>
 <html lang="ru">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-<title>DM Chat</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Платформа Мониторинга 💖</title>
+    <!-- Подключаем официальный SDK Supabase -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <!-- Google Fonts для красивой современной типографики -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+    
+    <style>
+        :root {
+            --bg-gradient: linear-gradient(135deg, #FFF0F2 0%, #FFE4E8 50%, #FFD1DC 100%);
+            --glass-bg: rgba(255, 255, 255, 0.7);
+            --glass-border: rgba(255, 255, 255, 0.6);
+            --accent-pink: #FF4D79;
+            --accent-hover: #FF2E60;
+            --neon-glow: rgba(255, 77, 121, 0.35);
+            --text-main: #2C1820;
+            --text-muted: #8C767E;
+            --card-shadow: 0 12px 40px rgba(255, 105, 135, 0.08);
+            --inner-shadow: inset 0 2px 4px rgba(255, 255, 255, 0.4);
+        }
 
-<style>
-body {
-margin:0;
-font-family: Arial;
-background:#1a001f;
-color:white;
-display:flex;
-height:100vh;
-}
+        * {
+            box-sizing: border-box;
+            font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+            transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+        }
 
-/* LEFT USERS */
-#users {
-width:250px;
-background:#2a0033;
-padding:10px;
-overflow:auto;
-}
+        body {
+            background: var(--bg-gradient);
+            margin: 0;
+            padding: 40px 20px;
+            color: var(--text-main);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            backdrop-filter: blur(100px);
+        }
 
-.user {
-display:flex;
-align-items:center;
-gap:10px;
-padding:10px;
-cursor:pointer;
-background:#3a0047;
-margin-bottom:8px;
-border-radius:10px;
-}
+        /* --- ЭСТЕТИЧНЫЙ ВХОД (AUTH CARD) --- */
+        #auth-section {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            width: 100%;
+            perspective: 1000px;
+        }
 
-.avatar {
-width:40px;
-height:40px;
-border-radius:8px;
-overflow:hidden;
-background:purple;
-}
+        .auth-card {
+            background: var(--glass-bg);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid var(--glass-border);
+            border-radius: 32px;
+            padding: 50px 40px;
+            box-shadow: 0 30px 70px rgba(255, 77, 121, 0.15), var(--inner-shadow);
+            width: 100%;
+            max-width: 420px;
+            text-align: center;
+            transform: translateY(0);
+        }
 
-.avatar img {
-width:100%;
-height:100%;
-object-fit:cover;
-}
+        .auth-card:hover {
+            box-shadow: 0 35px 80px rgba(255, 77, 121, 0.2), var(--inner-shadow);
+        }
 
-/* CHAT */
-#chat {
-flex:1;
-display:flex;
-flex-direction:column;
-}
+        .logo-container {
+            width: 80px;
+            height: 80px;
+            background: linear-gradient(135deg, #FFAEC1, var(--accent-pink));
+            border-radius: 24px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 36px;
+            margin: 0 auto 25px auto;
+            box-shadow: 0 10px 25px var(--neon-glow);
+            color: white;
+        }
 
-#messages {
-flex:1;
-padding:10px;
-overflow:auto;
-}
+        .auth-card h2 {
+            font-size: 26px;
+            font-weight: 700;
+            margin: 0 0 8px 0;
+            letter-spacing: -0.5px;
+        }
 
-.msg {
-background:#3a0047;
-padding:10px;
-margin:5px;
-border-radius:10px;
-display:flex;
-justify-content:space-between;
-align-items:center;
-}
+        .auth-card p {
+            color: var(--text-muted);
+            font-size: 14px;
+            margin: 0 0 30px 0;
+        }
 
-.like {
-cursor:pointer;
-color:#ff4dff;
-}
+        .input-group {
+            position: relative;
+            margin-bottom: 20px;
+        }
 
-#inputBox {
-display:flex;
-padding:10px;
-background:#2a0033;
-}
+        .input-group input {
+            width: 100%;
+            padding: 16px 20px;
+            border: 1.5px solid rgba(255, 77, 121, 0.15);
+            background: rgba(255, 255, 255, 0.5);
+            border-radius: 16px;
+            font-size: 15px;
+            font-weight: 500;
+            color: var(--text-main);
+            outline: none;
+            box-shadow: inset 0 1px 2px rgba(0,0,0,0.02);
+        }
 
-input {
-flex:1;
-padding:10px;
-border:none;
-border-radius:8px;
-}
+        .input-group input:focus {
+            border-color: var(--accent-pink);
+            background: #ffffff;
+            box-shadow: 0 0 0 4px var(--neon-glow);
+        }
 
-button {
-margin-left:10px;
-background:purple;
-color:white;
-border:none;
-padding:10px;
-border-radius:8px;
-cursor:pointer;
-}
+        .btn-pink {
+            width: 100%;
+            background: linear-gradient(135deg, #FF668F, var(--accent-pink));
+            color: white;
+            border: none;
+            padding: 16px;
+            border-radius: 16px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            box-shadow: 0 8px 25px rgba(255, 77, 121, 0.3);
+        }
 
-#login {
-position:absolute;
-top:0;left:0;right:0;bottom:0;
-background:#1a001f;
-display:flex;
-justify-content:center;
-align-items:center;
-flex-direction:column;
-}
-</style>
+        .btn-pink:hover {
+            background: linear-gradient(135deg, var(--accent-pink), var(--accent-hover));
+            transform: translateY(-2px);
+            box-shadow: 0 12px 30px rgba(255, 77, 121, 0.4);
+        }
+
+        .btn-pink:active { transform: translateY(0); }
+
+        .btn-sub {
+            width: 100%;
+            background: transparent;
+            color: var(--accent-pink);
+            border: 2px solid rgba(255, 77, 121, 0.2);
+            padding: 14px;
+            border-radius: 16px;
+            font-size: 15px;
+            font-weight: 600;
+            cursor: pointer;
+            margin-top: 12px;
+        }
+
+        .btn-sub:hover {
+            background: rgba(255, 77, 121, 0.05);
+            border-color: var(--accent-pink);
+        }
+
+        .divider {
+            display: flex;
+            align-items: center;
+            text-align: center;
+            color: var(--text-muted);
+            font-size: 12px;
+            font-weight: 600;
+            margin: 25px 0;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        .divider::before, .divider::after {
+            content: '';
+            flex: 1;
+            border-bottom: 1px solid rgba(255, 77, 121, 0.15);
+        }
+        .divider:not(:empty)::before { margin-right: .5em; }
+        .divider:not(:empty)::after { margin-left: .5em; }
+
+        .btn-google {
+            width: 100%;
+            background: #ffffff;
+            color: #44353A;
+            border: 1px solid rgba(255, 77, 121, 0.15);
+            padding: 14px;
+            border-radius: 16px;
+            font-size: 15px;
+            font-weight: 600;
+            cursor: pointer;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 12px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.02);
+        }
+
+        .btn-google:hover {
+            background: #FAFAFA;
+            border-color: var(--text-muted);
+            transform: translateY(-1px);
+        }
+
+
+        /* --- ГЛАВНЫЙ ИНТЕРФЕЙС (ДАШБОРД) --- */
+        #main-dashboard {
+            display: none;
+            width: 100%;
+            max-width: 1100px;
+            animation: fadeIn 0.5s ease-out;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .header-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            width: 100%;
+            margin-bottom: 30px;
+        }
+
+        .header-bar h2 {
+            font-size: 24px;
+            font-weight: 700;
+            margin: 0;
+            background: linear-gradient(135deg, var(--text-main), var(--accent-pink));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .btn-logout {
+            background: var(--glass-bg);
+            border: 1px solid rgba(255, 77, 121, 0.2);
+            color: var(--accent-pink);
+            padding: 10px 20px;
+            border-radius: 14px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 14px;
+        }
+
+        .btn-logout:hover {
+            background: var(--accent-pink);
+            color: white;
+            box-shadow: 0 5px 15px var(--neon-glow);
+        }
+
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: 1fr 1.2fr;
+            gap: 30px;
+        }
+
+        @media (max-width: 900px) {
+            .dashboard-grid { grid-template-columns: 1fr; }
+        }
+
+        /* Стильные Стекло-Панели */
+        .panel {
+            background: var(--glass-bg);
+            backdrop-filter: blur(15px);
+            -webkit-backdrop-filter: blur(15px);
+            border: 1px solid var(--glass-border);
+            border-radius: 24px;
+            padding: 25px;
+            box-shadow: var(--card-shadow), var(--inner-shadow);
+            margin-bottom: 30px;
+        }
+
+        .panel-title {
+            font-size: 15px;
+            font-weight: 700;
+            margin-bottom: 20px;
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            color: var(--text-muted);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        /* Таймер сессии */
+        .timer-container {
+            text-align: center;
+            padding: 10px 0;
+        }
+        
+        .user-name {
+            font-weight: 700;
+            font-size: 20px;
+            color: var(--text-main);
+            margin-bottom: 5px;
+        }
+
+        .timer-display {
+            font-size: 56px;
+            font-weight: 700;
+            color: var(--accent-pink);
+            margin: 15px 0;
+            font-family: monospace;
+            letter-spacing: 2px;
+            text-shadow: 0 0 20px rgba(255, 77, 121, 0.2);
+        }
+
+        .timer-sub {
+            font-size: 11px;
+            font-weight: 700;
+            color: #4CAF50;
+            background: rgba(76, 175, 80, 0.1);
+            padding: 4px 12px;
+            border-radius: 20px;
+            display: inline-block;
+            margin-bottom: 25px;
+            letter-spacing: 1px;
+        }
+
+        .timer-buttons {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+        }
+
+        .btn-control {
+            padding: 14px;
+            border-radius: 14px;
+            border: none;
+            font-weight: 600;
+            font-size: 14px;
+            cursor: pointer;
+        }
+        .btn-start {
+            background: linear-gradient(135deg, #66BB6A, #4CAF50);
+            color: white;
+            box-shadow: 0 6px 15px rgba(76, 175, 80, 0.25);
+        }
+        .btn-start:hover { transform: translateY(-2px); box-shadow: 0 8px 20px rgba(76, 175, 80, 0.35); }
+        
+        .btn-stop {
+            background: linear-gradient(135deg, #FF6B6B, #FF4D4D);
+            color: white;
+            box-shadow: 0 6px 15px rgba(255, 77, 77, 0.25);
+        }
+        .btn-stop:hover { transform: translateY(-2px); box-shadow: 0 8px 20px rgba(255, 77, 77, 0.35); }
+
+        /* Сетка выбора Статусов */
+        .status-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+        }
+
+        .status-item {
+            background: rgba(255, 255, 255, 0.4);
+            border: 1px solid rgba(255, 77, 121, 0.08);
+            border-radius: 16px;
+            padding: 16px;
+            font-size: 14px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            cursor: pointer;
+        }
+
+        .status-item:hover {
+            background: rgba(255, 255, 255, 0.8);
+            border-color: rgba(255, 77, 121, 0.3);
+            transform: scale(1.02);
+        }
+
+        .status-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: #D5C8CD;
+        }
+
+        .status-item.active {
+            background: #ffffff;
+            border-color: var(--accent-pink);
+            box-shadow: 0 8px 20px rgba(255, 77, 121, 0.1);
+        }
+
+        .status-item.active .status-dot {
+            background: var(--accent-pink);
+            box-shadow: 0 0 10px var(--accent-pink), 0 0 20px var(--accent-pink);
+        }
+
+        /* Мини-плитки цифр статистики */
+        .stats-mini {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 10px;
+            text-align: center;
+            margin-top: 25px;
+        }
+
+        .stat-mini-box {
+            background: rgba(255, 255, 255, 0.4);
+            padding: 12px 6px;
+            border-radius: 14px;
+            border: 1px solid rgba(255, 255, 255, 0.5);
+        }
+
+        .stat-mini-val {
+            font-size: 20px;
+            font-weight: 700;
+            color: var(--text-main);
+        }
+
+        .stat-mini-lbl {
+            font-size: 10px;
+            font-weight: 600;
+            color: var(--text-muted);
+            margin-top: 4px;
+        }
+
+        /* Правая колонка: Профиль */
+        .profile-header {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+        }
+
+        .profile-avatar {
+            width: 64px;
+            height: 64px;
+            background: linear-gradient(135deg, #FF668F, var(--accent-pink));
+            border-radius: 22px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 26px;
+            font-weight: 700;
+            box-shadow: 0 8px 20px var(--neon-glow);
+        }
+
+        .profile-badges-inline {
+            display: flex;
+            gap: 6px;
+            margin-top: 6px;
+        }
+
+        .mini-badge {
+            background: rgba(255, 77, 121, 0.1);
+            color: var(--accent-pink);
+            padding: 4px 10px;
+            border-radius: 8px;
+            font-size: 11px;
+            font-weight: 700;
+        }
+
+        /* Красивые строки достижений */
+        .achievements-list {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .achievement-row {
+            background: rgba(255, 255, 255, 0.3);
+            border: 1px solid rgba(255, 255, 255, 0.4);
+            border-radius: 18px;
+            padding: 16px;
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            opacity: 0.4;
+            filter: grayscale(80%);
+        }
+
+        .achievement-row.unlocked {
+            opacity: 1;
+            filter: grayscale(0%);
+            border-color: rgba(255, 77, 121, 0.2);
+            background: #ffffff;
+            box-shadow: 0 6px 15px rgba(255, 105, 135, 0.04);
+        }
+
+        .ach-icon {
+            font-size: 32px;
+            background: rgba(255,255,255,0.8);
+            width: 52px;
+            height: 52px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 14px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.02);
+        }
+
+        .ach-details { flex-grow: 1; }
+        .ach-name { font-weight: 700; font-size: 15px; color: var(--text-main); }
+        .ach-desc { font-size: 12px; color: var(--text-muted); margin-top: 2px; line-height: 1.4; }
+        
+        .ach-status-label {
+            font-size: 11px;
+            font-weight: 700;
+            background: #E5DCDE;
+            color: #7A666C;
+            padding: 5px 12px;
+            border-radius: 10px;
+        }
+        .achievement-row.unlocked .ach-status-label {
+            background: rgba(76, 175, 80, 0.1);
+            color: #4CAF50;
+        }
+
+        /* Лидерборд */
+        .top-students-list { display: flex; flex-direction: column; gap: 10px; }
+        .top-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 16px;
+            background: rgba(255,255,255,0.3);
+            border-radius: 12px;
+            font-size: 14px;
+            font-weight: 600;
+        }
+        .top-item b { color: var(--accent-pink); }
+    </style>
 </head>
-
 <body>
 
-<div id="login">
-<h2>DM Chat</h2>
-<button onclick="googleLogin()">Войти через Google</button>
-</div>
+    <!-- СЕКЦИЯ КРАСИВОГО ВХОДА -->
+    <div id="auth-section">
+        <div class="auth-card">
+            <div class="logo-container">✨</div>
+            <h2>Добро пожаловать</h2>
+            <p>Войдите для доступа к панели мониторинга</p>
+            
+            <div class="input-group">
+                <input type="email" id="email" placeholder="Электронная почта">
+            </div>
+            <div class="input-group">
+                <input type="password" id="password" placeholder="Пароль">
+            </div>
+            
+            <button class="btn-pink" onclick="signIn()">Войти в систему</button>
+            <button class="btn-sub" onclick="signUp()">Создать аккаунт</button>
+            
+            <div class="divider">или</div>
+            
+            <button class="btn-google" onclick="signInWithGoogle()">
+                <img src="https://fonts.gstatic.com/s/i/productlogos/googleg/v6/web-24dp/logo_googleg_color_24dp.png" alt="Google" width="18">
+                Продолжить через Google
+            </button>
+        </div>
+    </div>
 
-<div id="users"></div>
+    <!-- ГЛАВНЫЙ ИНТЕРФЕЙС (РОЗОВЫЙ ДАШБОРД) -->
+    <div id="main-dashboard">
+        <div class="header-bar">
+            <h2>🌸 Платформа Мониторинга</h2>
+            <button class="btn-logout" onclick="logout()">Выйти из профиля 🚪</button>
+        </div>
 
-<div id="chat">
-<div id="messages"></div>
+        <div class="dashboard-grid">
+            
+            <!-- ЛЕВАЯ КОЛОНКА -->
+            <div>
+                <!-- Панель Сессии -->
+                <div class="panel">
+                    <div class="panel-title">⏱️ Сессия учебы</div>
+                    <div class="timer-container">
+                        <div class="user-name" id="display-user-name">Загрузка...</div>
+                        <div class="timer-display" id="timer">00:00:00</div>
+                        <div class="timer-sub">● ТАЙМЕР АКТИВЕН</div>
+                        <div class="timer-buttons">
+                            <button class="btn-control btn-start" onclick="startTimer()">Продолжить</button>
+                            <button class="btn-control btn-stop" onclick="stopTimer()">Завершить</button>
+                        </div>
+                    </div>
+                </div>
 
-<div id="inputBox">
-<input id="text" placeholder="Напиши сообщение..."/>
-<button onclick="send()">Отправить</button>
-</div>
-</div>
+                <!-- Панель Статусов -->
+                <div class="panel">
+                    <div class="panel-title">💖 Мой текущий статус</div>
+                    <div class="status-grid">
+                        <div class="status-item active" id="status-study"><div class="status-dot"></div> Учеба</div>
+                        <div class="status-item" id="status-rest"><div class="status-dot"></div> Отдых</div>
+                        <div class="status-item" id="status-busy"><div class="status-dot"></div> Занят</div>
+                        <div class="status-item" id="status-away"><div class="status-dot"></div> Не беспокоить</div>
+                    </div>
 
-<script type="module">
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-import { getAuth, GoogleAuthProvider, signInWithPopup, onAuthStateChanged }
-from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+                    <!-- Статистика цифрами -->
+                    <div class="stats-mini">
+                        <div class="stat-mini-box"><div class="stat-mini-val" id="stat-xp">0</div><div class="stat-mini-lbl">Опыт XP</div></div>
+                        <div class="stat-mini-box"><div class="stat-mini-val" id="stat-msg">0</div><div class="stat-mini-lbl">Чаты</div></div>
+                        <div class="stat-mini-box"><div class="stat-mini-val">1</div><div class="stat-mini-lbl">Сессия</div></div>
+                        <div class="stat-mini-box"><div class="stat-mini-val" id="stat-badges-count">0</div><div class="stat-mini-lbl">Ачивки</div></div>
+                    </div>
+                </div>
 
-import {
-getFirestore, collection, addDoc, query, onSnapshot,
-orderBy, serverTimestamp
-} from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+                <!-- Тестирование -->
+                <div class="panel" style="text-align: center; background: rgba(255,255,255,0.2);">
+                    <div class="panel-title" style="font-size: 11px; justify-content: center;">Тест выполнения ТЗ</div>
+                    <button class="btn-pink" style="margin: 0; padding: 12px; font-size: 14px;" onclick="simulateMessage()">+1 Сообщение в чат 💬</button>
+                </div>
+            </div>
 
-/* 🔥 FIREBASE */
-const firebaseConfig = {
-  apiKey: "AIzaSyCta0f_VfoXiC_TUV0r0IpyHOJHq5v9eoU",
-  authDomain: "werr-6ef0d.firebaseapp.com",
-  projectId: "werr-6ef0d",
-  storageBucket: "werr-6ef0d.firebasestorage.app",
-  messagingSenderId: "1091383193534",
-  appId: "1:1091383193534:web:aea5b762a49e58188493ef",
-  measurementId: "G-G2VGMJSXLX"
-};
+            <!-- ПРАВАЯ КОЛОНКА -->
+            <div>
+                <!-- Профиль -->
+                <div class="panel">
+                    <div class="profile-header">
+                        <div class="profile-avatar" id="avatar-letter">U</div>
+                        <div>
+                            <div style="font-weight: 700; font-size: 20px; color: var(--text-main);" id="profile-name">Студент</div>
+                            <div class="profile-badges-inline">
+                                <span class="mini-badge">Online</span>
+                                <span class="mini-badge" style="background: rgba(0,0,0,0.04); color: var(--text-main);">Level 1</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
 
-const app = initializeApp(firebaseConfig);
-const auth = getAuth(app);
-const db = getFirestore(app);
+                <!-- ВСЕ ДОСТИЖЕНИЯ -->
+                <div class="panel">
+                    <div class="panel-title">🏆 Все достижения</div>
+                    <div class="achievements-list">
+                        
+                        <div class="achievement-row" id="badge-early_bird">
+                            <div class="ach-icon">☀️</div>
+                            <div class="ach-details">
+                                <div class="ach-name">Ранняя пташка</div>
+                                <div class="ach-desc">Запуск сессии обучения раньше 8:00 утра.</div>
+                            </div>
+                            <div class="ach-status-label">Закрыто</div>
+                        </div>
 
-let currentUser = null;
-let selectedUser = null;
+                        <div class="achievement-row" id="badge-marathon">
+                            <div class="ach-icon">🏃‍♀️</div>
+                            <div class="ach-details">
+                                <div class="ach-name">Марафонец</div>
+                                <div class="ach-desc">Беспрерывное обучение более 1 минуты (демо-режим).</div>
+                            </div>
+                            <div class="ach-status-label">Закрыто</div>
+                        </div>
 
-/* USERS */
-const usersList = [
-{
-name: "madkid",
-avatar: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTM0OjKY87dSdNw3LIs-7yHxIuleNv9u0EmsXeYX0h9vA&s"
-},
-{
-name: "fanatka masheri",
-avatar: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQ6Fgs-Gw9GufnLYVoznNPgrDaHZJOzU2wXHA&s"
-},
-{
-name: "me",
-avatar: "https://cdn-images.dzcdn.net/images/cover/8af82f9f4fd86ba086c184651d4c014f/500x500.jpg"
-}
-];
+                        <div class="achievement-row" id="badge-activist">
+                            <div class="ach-icon">💬</div>
+                            <div class="ach-details">
+                                <div class="ach-name">Активист группы</div>
+                                <div class="ach-desc">Накоплено 20 и более отправленных сообщений.</div>
+                            </div>
+                            <div class="ach-status-label">Закрыто</div>
+                        </div>
 
-/* LOGIN */
-window.googleLogin = function() {
-const provider = new GoogleAuthProvider();
-signInWithPopup(auth, provider);
-}
+                    </div>
+                </div>
 
-onAuthStateChanged(auth,(user)=>{
-if(user){
-currentUser = user.displayName || "user";
-document.getElementById("login").style.display="none";
-loadUsers();
-}
-});
+                <!-- ЛИДЕРБОРД -->
+                <div class="panel">
+                    <div class="panel-title">⭐ Топ Студентов</div>
+                    <div class="top-students-list" id="top-list">Загрузка рейтинга...</div>
+                </div>
+            </div>
 
-/* USERS */
-function loadUsers(){
-let box = document.getElementById("users");
-box.innerHTML="";
+        </div>
+    </div>
 
-usersList.forEach(u=>{
-if(u.name === currentUser) return;
+    <script>
+        // Твои авторизационные данные Supabase подключены сразу внутри кода
+        const SUPABASE_URL = "https://aivhvlyfkgclvayfsjmw.supabase.co"; 
+        const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFpdmh2bHlma2djbHZheWZzam13Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA0MTM0ODYsImV4cCI6MjA5NTk4OTQ4Nn0.qaPI2WrCxzW3ByZV4Hg5a_qfD25fr8DOUM8xiDGdQLo"; 
+        
+        const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+        let currentUser = null;
+        let timerInterval = null;
+        let totalSeconds = 0;
 
-let div = document.createElement("div");
-div.className="user";
+        async function signIn() {
+            const email = document.getElementById('email').value.trim();
+            const password = document.getElementById('password').value;
+            const { error } = await _supabase.auth.signInWithPassword({ email, password });
+            if (error) alert(error.message);
+        }
+        
+        async function signUp() {
+            const email = document.getElementById('email').value.trim();
+            const password = document.getElementById('password').value;
+            const { error } = await _supabase.auth.signUp({ email, password });
+            if (error) alert(error.message);
+            else alert("Письмо подтверждения отправлено на почту!");
+        }
+        
+        async function signInWithGoogle() {
+            await _supabase.auth.signInWithOAuth({
+                provider: 'google',
+                options: { redirectTo: window.location.origin + window.location.pathname }
+            });
+        }
+        
+        async function logout() {
+            await _supabase.auth.signOut();
+            window.location.reload();
+        }
 
-div.innerHTML = `
-<div class="avatar"><img src="${u.avatar}"></div>
-<div>${u.name}</div>
-`;
+        _supabase.auth.onAuthStateChange(async (event, session) => {
+            if (session) {
+                currentUser = session.user;
+                document.getElementById('auth-section').style.display = 'none';
+                document.getElementById('main-dashboard').style.display = 'block';
+                
+                const name = currentUser.email.split('@')[0];
+                document.getElementById('display-user-name').innerText = name;
+                document.getElementById('profile-name').innerText = name;
+                document.getElementById('avatar-letter').innerText = name[0].toUpperCase();
 
-div.onclick = ()=>openChat(u.name);
+                await checkAndCreateProfile(currentUser);
+                await checkEarlyBird(currentUser.id);
+                await loadDashboardData();
+                startTimer();
+            }
+        });
 
-box.appendChild(div);
-});
-}
+        async function checkAndCreateProfile(user) {
+            const { data } = await _supabase.from('profiles').select('*').eq('id', user.id).single();
+            if (!data) {
+                await _supabase.from('profiles').insert({
+                    id: user.id, name: user.email.split('@')[0], xp: 10, messages_count: 0
+                });
+            }
+        }
 
-/* CHAT ID */
-function chatId(u1,u2){
-return [u1,u2].sort().join("_");
-}
+        function startTimer() {
+            if (timerInterval) return;
+            document.getElementById('status-study').classList.add('active');
+            document.getElementById('status-rest').classList.remove('active');
+            
+            timerInterval = setInterval(async () => {
+                totalSeconds++;
+                
+                let hrs = Math.floor(totalSeconds / 3600).toString().padStart(2, '0');
+                let mins = Math.floor((totalSeconds % 3600) / 60).toString().padStart(2, '0');
+                let secs = (totalSeconds % 60).toString().padStart(2, '0');
+                document.getElementById('timer').innerText = `${hrs}:${mins}:${secs}`;
 
-/* OPEN CHAT */
-function openChat(user){
-selectedUser = user;
-listen();
-}
+                if (totalSeconds === 60) {
+                    await awardBadge(currentUser.id, 'marathon', "Вы проявили стойкость! Достижение 'Марафонец' получено! 🏃‍♀️");
+                    await loadDashboardData();
+                }
+            }, 1000);
+        }
 
-/* SEND */
-window.send = async function(){
-let text = document.getElementById("text").value;
-if(!text || !selectedUser) return;
+        function stopTimer() {
+            clearInterval(timerInterval);
+            timerInterval = null;
+            document.getElementById('status-study').classList.remove('active');
+            document.getElementById('status-rest').classList.add('active');
+        }
 
-await addDoc(collection(db,"chats",chatId(currentUser,selectedUser),"messages"),{
-text,
-from: currentUser,
-likes:0,
-createdAt: serverTimestamp()
-});
+        document.querySelectorAll('.status-item').forEach(item => {
+            item.addEventListener('click', () => {
+                document.querySelectorAll('.status-item').forEach(i => i.classList.remove('active'));
+                item.classList.add('active');
+                if(item.id !== 'status-study') stopTimer();
+                else startTimer();
+            });
+        });
 
-document.getElementById("text").value="";
-}
+        async function loadDashboardData() {
+            if (!currentUser) return;
 
-/* LISTEN */
-function listen(){
-const q = query(
-collection(db,"chats",chatId(currentUser,selectedUser),"messages"),
-orderBy("createdAt")
-);
+            const { data: profile } = await _supabase.from('profiles').select('*').eq('id', currentUser.id).single();
+            if (profile) {
+                document.getElementById('stat-xp').innerText = profile.xp || 0;
+                document.getElementById('stat-msg').innerText = profile.messages_count || 0;
+            }
 
-onSnapshot(q,(snap)=>{
-let box = document.getElementById("messages");
-box.innerHTML="";
+            const { data: topStudents } = await _supabase.from('profiles').select('name, xp').order('xp', { ascending: false }).limit(3);
+            if (topStudents) {
+                document.getElementById('top-list').innerHTML = topStudents.map((st, i) => `
+                    <div class="top-item">
+                        <span><b>${i+1}.</b> ${st.name}</span>
+                        <span style="color:var(--accent-pink); font-weight:700;">${st.xp} XP</span>
+                    </div>
+                `).join('');
+            }
 
-snap.forEach(doc=>{
-let d = doc.data();
+            const { data: myBadges } = await _supabase.from('user_achievements').select('achievement_id').eq('user_id', currentUser.id);
+            document.querySelectorAll('.achievement-row').forEach(r => {
+                r.classList.remove('unlocked');
+                r.querySelector('.ach-status-label').innerText = "Закрыто";
+            });
+            
+            if (myBadges) {
+                document.getElementById('stat-badges-count').innerText = myBadges.length;
+                myBadges.forEach(b => {
+                    const el = document.getElementById(`badge-${b.achievement_id}`);
+                    if (el) {
+                        el.classList.add('unlocked');
+                        el.querySelector('.ach-status-label').innerText = "Получено";
+                    }
+                });
+            }
+        }
 
-let div = document.createElement("div");
-div.className="msg";
+        async function checkEarlyBird(userId) {
+            const hour = new Date().getHours();
+            if (hour < 8) {
+                await awardBadge(userId, 'early_bird', "Доброе утро! Получено достижение 'Ранняя пташка' ☀️");
+            }
+        }
 
-div.innerHTML=`
-<div>
-<b>${d.from}</b><br>
-${d.text}
-</div>
-<div class="like">❤️ ${d.likes || 0}</div>
-`;
+        async function simulateMessage() {
+            const { data: p } = await _supabase.from('profiles').select('messages_count, xp').eq('id', currentUser.id).single();
+            const nextMsg = (p.messages_count || 0) + 1;
+            const nextXp = (p.xp || 0) + 10;
 
-box.appendChild(div);
-});
-});
-}
-</script>
+            await _supabase.from('profiles').update({ messages_count: nextMsg, xp: nextXp }).eq('id', currentUser.id);
+            
+            if (nextMsg === 20) {
+                await awardBadge(currentUser.id, 'activist', "Вы супер-активны! Получено достижение 'Активист группы' 💬");
+            }
+            await loadDashboardData();
+        }
 
+        async function awardBadge(userId, badgeId, text) {
+            const { data } = await _supabase.from('user_achievements').select('*').eq('user_id', userId).eq('achievement_id', badgeId).single();
+            if (!data) {
+                await _supabase.from('user_achievements').insert({ user_id: userId, achievement_id: badgeId });
+                alert(`🎉 Достижение открыто! \n${text}`);
+            }
+        }
+    </script>
 </body>
 </html>
